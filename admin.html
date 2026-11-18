@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة - Nour Tracking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-theme text-slate-900 min-h-screen flex flex-col selection:bg-emerald-600 selection:text-white">
+
+    <!-- لوحة تحكم الإدارة الكاملة -->
+    <div id="admin-dashboard-view" class="w-full flex-grow flex flex-col">
+        <header class="bg-white/95 border-b border-slate-200/80 text-slate-900 sticky top-0 z-40 backdrop-blur-md shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex items-center space-x-3 space-x-reverse w-full md:w-auto justify-between md:justify-start">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="bg-gradient-to-tr from-emerald-800 to-teal-600 text-white p-2.5 sm:p-3 rounded-2xl shadow-lg shadow-emerald-700/20 font-black text-lg flex items-center justify-center">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base sm:text-lg font-black tracking-wide text-slate-900 flex items-center gap-1.5">
+                                Nour Tracking (لوحة الإدارة) <i class="fa-solid fa-shield-check text-emerald-700 text-xs"></i>
+                            </h2>
+                            <p class="text-[10px] sm:text-xs text-emerald-700 font-bold">إدارة الشحنات والتحليلات بالـ (₪)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                    <button onclick="downloadDatabaseBackup()" class="px-3.5 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-xs rounded-xl flex items-center gap-1.5 font-black transition cursor-pointer border border-emerald-300 hover-scale shadow-sm">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> نسخة احتياطية
+                    </button>
+                    <a href="index.html" class="px-3.5 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-950 text-xs rounded-xl flex items-center gap-1.5 font-black transition cursor-pointer border border-indigo-300 hover-scale shadow-sm">
+                        <i class="fa-solid fa-house"></i> بوابة الزبائن
+                    </a>
+                    <button onclick="lockSystem()" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 text-xs rounded-xl flex items-center gap-1.5 font-black transition cursor-pointer border border-slate-300 hover-scale shadow-sm">
+                        <i class="fa-solid fa-lock"></i> قفل الإدارة
+                    </button>
+                    <span id="db-status" class="px-3.5 py-2 bg-slate-100 text-slate-800 text-xs rounded-xl flex items-center gap-1.5 font-black border border-slate-300 whitespace-nowrap">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> متصل
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-5 relative z-10">
+            
+            <!-- فلترة التاريخ -->
+            <div class="admin-card p-4 rounded-3xl flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 shadow-inner"><i class="fa-solid fa-filter text-sm"></i></div>
+                    <span class="font-black text-xs sm:text-sm text-slate-800">فلترة التقارير والأرباح حسب النطاق الزمني:</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-700 flex-grow sm:flex-grow-0">
+                        <span class="font-black shrink-0">من:</span>
+                        <input type="date" id="filter-start-date" class="w-full sm:w-auto border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-emerald-700 bg-slate-50">
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs text-slate-700 flex-grow sm:flex-grow-0">
+                        <span class="font-black shrink-0">إلى:</span>
+                        <input type="date" id="filter-end-date" class="w-full sm:w-auto border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-emerald-700 bg-slate-50">
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
+                        <button onclick="applyDateFilter()" class="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-xl text-xs font-black transition shadow-sm cursor-pointer hover-scale">تطبيق</button>
+                        <button onclick="resetDateFilter()" class="flex-1 sm:flex-none bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer hover-scale">إلغاء</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- المؤشرات الكارتات -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3.5">
+                <div onclick="showDashboardDetails('revenue')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-emerald-600 group-hover:bg-emerald-700 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">المبيعات (اضغط للتفصيل)</p>
+                        <h3 id="dash-revenue" class="text-sm sm:text-base font-black text-slate-900 mt-1">₪0.00</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-shekel-sign"></i></div>
+                </div>
+
+                <div onclick="showDashboardDetails('profit')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-teal-600 group-hover:bg-teal-700 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">الأرباح (اضغط للتفصيل)</p>
+                        <h3 id="dash-profit" class="text-sm sm:text-base font-black text-emerald-700 mt-1">₪0.00</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-teal-100 text-teal-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-piggy-bank"></i></div>
+                </div>
+
+                <div onclick="showDashboardDetails('debt')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-rose-600 group-hover:bg-rose-700 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">ديون معلقة (اضغط للتفصيل)</p>
+                        <h3 id="dash-debt" class="text-sm sm:text-base font-black text-rose-700 mt-1">₪0.00</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-rose-100 text-rose-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                </div>
+
+                <div onclick="showDashboardDetails('shipments')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-amber-600 group-hover:bg-amber-700 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">تكلفة الشحنات (اضغط)</p>
+                        <h3 id="dash-shipment-costs" class="text-sm sm:text-base font-black text-amber-700 mt-1">₪0.00</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-truck-fast"></i></div>
+                </div>
+
+                <div onclick="showDashboardDetails('shipping_duration')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-indigo-600 group-hover:bg-indigo-700 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">متوسط التوصيل (اضغط)</p>
+                        <h3 id="dash-avg-duration" class="text-sm sm:text-base font-black text-indigo-700 mt-1">0 يوم</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-indigo-100 text-indigo-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-clock"></i></div>
+                </div>
+
+                <div onclick="showDashboardDetails('received')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-blue-600 group-hover:bg-blue-700 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">شحنات وصلت (اضغط)</p>
+                        <h3 id="dash-received" class="text-sm sm:text-base font-black text-blue-700 mt-1">0</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-blue-100 text-blue-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-box-archive"></i></div>
+                </div>
+
+                <div onclick="showDashboardDetails('vip_clients')" class="admin-card p-4 rounded-3xl flex items-center justify-between relative overflow-hidden col-span-2 md:col-span-1 hover-scale cursor-pointer group">
+                    <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-yellow-500 group-hover:bg-yellow-600 transition"></div>
+                    <div>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase">زبائن VIP (اضغط)</p>
+                        <h3 id="dash-vip-count" class="text-sm sm:text-base font-black text-yellow-700 mt-1">0</h3>
+                    </div>
+                    <div class="w-9 h-9 bg-yellow-100 text-yellow-800 rounded-2xl flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-crown"></i></div>
+                </div>
+            </div>
+
+            <!-- أزرار التبديل بين الأقسام -->
+            <div class="flex flex-row overflow-x-auto gap-2 admin-card p-2.5 rounded-3xl scrollbar-none">
+                <button onclick="switchTab('shipments')" id="btn-tab-shipments" class="px-4.5 py-2.5 rounded-2xl font-black text-xs sm:text-sm bg-emerald-700 text-white transition shadow-md shadow-emerald-700/20 cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-boxes-packing"></i> الشحنات الرئيسية
+                </button>
+                <button onclick="switchTab('shipment_details')" id="btn-tab-shipment_details" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-square-poll-vertical"></i> شحنات الزبائن (تفصيلي وطي)
+                </button>
+                <button onclick="switchTab('orders')" id="btn-tab-orders" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-cart-shopping"></i> طلبيات الزبائن
+                </button>
+                <button onclick="switchTab('clients')" id="btn-tab-clients" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-address-book"></i> الزبائن وملاحظاتهم
+                </button>
+                <button onclick="switchTab('announcements')" id="btn-tab-announcements" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-bullhorn"></i> إدارة الإعلانات
+                </button>
+                <button onclick="switchTab('websites')" id="btn-tab-websites" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-globe"></i> مواقع الشراء
+                </button>
+                <button onclick="switchTab('expenses')" id="btn-tab-expenses" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> المصاريف
+                </button>
+                <button onclick="switchTab('logs')" id="btn-tab-logs" class="px-4.5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer flex items-center gap-2 whitespace-nowrap shrink-0 hover-scale">
+                    <i class="fa-solid fa-clock-rotate-left"></i> سجل الحركات
+                </button>
+            </div>
+
+            <!-- جدول الشحنات الرئيسية -->
+            <div id="section-shipments" class="space-y-4">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-box text-emerald-700"></i> الشحنات الرئيسية</h2>
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                            <input type="text" id="filter-shipments-input" oninput="applyFilterAndRender()" placeholder="فلتر للكود أو الموقع..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-48 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="exportTableToExcel('shipments-table-body', 'Shipments_Report.csv')" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer hover-scale"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                            <button onclick="openShipmentModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-2 shadow-md shadow-emerald-700/20 cursor-pointer hover-scale"><i class="fa-solid fa-plus"></i> شحنة رئيسية</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[750px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">كود الشحنة</th>
+                                    <th class="p-4">الموقع وتواريخ الطلب والوصول</th>
+                                    <th class="p-4">مدة التوصيل الفعلية</th>
+                                    <th class="p-4">التكلفة والعمولة</th>
+                                    <th class="p-4 text-center">حالة البريد والواتساب</th>
+                                    <th class="p-4 text-center">الفاتورة الرسمية</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shipments-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="7" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تاب شحنات الزبائن المفصلة -->
+            <div id="section-shipment_details" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl p-5 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 border-b border-slate-200 pb-4">
+                        <div>
+                            <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-square-poll-vertical text-emerald-700"></i> تفاصيل الشحنات والزبائن التابعين لكل شحنة
+                            </h2>
+                            <p class="text-xs text-slate-500 font-bold mt-0.5">كل شحنة تعرض تفاصيلها كاملة وتحتوي جدولاً بالزبائن الذين اشتروا منها مع إمكانية طيها وفتحها وتصديرها.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="filter-detailed-shipments-input" oninput="renderDetailedShipmentsTab()" placeholder="ابحث بكود الشحنة..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-52 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="exportAllDetailedShipmentsExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap hover-scale"><i class="fa-solid fa-file-excel"></i> تصدير الكل Excel</button>
+                        </div>
+                    </div>
+                    <div id="detailed-shipments-container" class="space-y-4">
+                        <div class="p-8 text-center text-slate-400 font-bold">جاري التحميل...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول طلبيات الزبائن -->
+            <div id="section-orders" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-cart-shopping text-emerald-700"></i> طلبيات الزبائن والمرتجعات</h2>
+                        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+                            <input type="text" id="filter-orders-input" oninput="applyFilterAndRender()" placeholder="فلتر (شحنة أو زبون)..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-48 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="exportTableToExcel('orders-table-body', 'Orders_Report.csv')" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer hover-scale"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                            <button onclick="openOrderModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-2 whitespace-nowrap shadow-md shadow-emerald-700/20 cursor-pointer hover-scale"><i class="fa-solid fa-plus"></i> طلبية زبون</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[950px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">كود الشحنة</th>
+                                    <th class="p-4">اسم الزبون</th>
+                                    <th class="p-4">تاريخ الطلب والوصول</th>
+                                    <th class="p-4">السعر والخصم</th>
+                                    <th class="p-4">سعر الموقع (₪)</th>
+                                    <th class="p-4">ما دفع الزبون (₪)</th>
+                                    <th class="p-4">الربح الصافي</th>
+                                    <th class="p-4 text-center">الحالة (استلام / مرتجع)</th>
+                                    <th class="p-4">تفاصيل القطع</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="10" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول الزبائن -->
+            <div id="section-clients" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-users text-indigo-700"></i> قائمة الزبائن وملاحظات الإدارة الخاصة لهم</h2>
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                            <input type="text" id="filter-clients-input" oninput="applyFilterAndRender()" placeholder="فلتر (اسم أو هاتف)..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-48 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="exportTableToExcel('clients-table-body', 'Clients_Report.csv')" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer hover-scale"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                            <button onclick="openClientModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition shadow-md shadow-emerald-700/20 cursor-pointer flex items-center gap-2 hover-scale"><i class="fa-solid fa-user-plus"></i> زبون جديد</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[800px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">اسم الزبون والتصنيف</th>
+                                    <th class="p-4">رقم الهاتف (المدخل بالداتا بيس)</th>
+                                    <th class="p-4">ملاحظة الإدارة للزبون</th>
+                                    <th class="p-4">إجمالي المدفوعات (₪)</th>
+                                    <th class="p-4">الأرباح المقبوضة (₪)</th>
+                                    <th class="p-4 text-center">التفاصيل والفاتورة</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="7" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول الإعلانات -->
+            <div id="section-announcements" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-bullhorn text-amber-600"></i> إدارة الإعلانات وشريط الأخبار المتحرك</h2>
+                        <button onclick="openAnnouncementModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition shadow-md cursor-pointer flex items-center gap-2 hover-scale"><i class="fa-solid fa-plus"></i> إعلان جديد</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[600px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">عنوان الإعلان</th>
+                                    <th class="p-4">محتوى الإعلان</th>
+                                    <th class="p-4 text-center">الحالة</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="announcements-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="4" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول مواقع الشراء -->
+            <div id="section-websites" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-globe text-blue-700"></i> مواقع الشراء المفضلة</h2>
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <input type="text" id="filter-websites-input" oninput="applyFilterAndRender()" placeholder="فلتر للموقع..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-48 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="openWebsiteModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition shadow-md shadow-emerald-700/20 cursor-pointer flex items-center gap-2 hover-scale"><i class="fa-solid fa-plus"></i> موقع جديد</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[500px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">اسم الموقع</th>
+                                    <th class="p-4">رابط الموقع</th>
+                                    <th class="p-4">ملاحظات</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="websites-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="4" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول المصاريف -->
+            <div id="section-expenses" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-receipt text-rose-700"></i> المصاريف والمدفوعات الأخرى</h2>
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                            <input type="text" id="filter-expenses-input" oninput="applyFilterAndRender()" placeholder="فلتر للمصروف..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-48 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="exportTableToExcel('expenses-table-body', 'Expenses_Report.csv')" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer hover-scale"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                            <button onclick="openExpenseModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-2xl text-xs font-black transition shadow-md shadow-emerald-700/20 cursor-pointer flex items-center gap-2 hover-scale"><i class="fa-solid fa-plus"></i> مصروف جديد</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[550px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">البيان / الوصف</th>
+                                    <th class="p-4">التاريخ</th>
+                                    <th class="p-4">المبلغ (₪)</th>
+                                    <th class="p-4">ملاحظات</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="5" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول سجل الحركات -->
+            <div id="section-logs" class="space-y-4 hidden">
+                <div class="admin-card rounded-3xl overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <h2 class="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-slate-800"></i> سجل الحركات الحساسة والمالية</h2>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="filter-logs-input" oninput="applyFilterAndRender()" placeholder="فلتر للسجل..." class="px-3.5 py-2 border border-slate-300 rounded-2xl text-xs font-bold w-full sm:w-48 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <button onclick="clearAllLogs()" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer hover-scale"><i class="fa-solid fa-trash-can"></i> تفريغ الكل</button>
+                            <button onclick="exportTableToExcel('logs-table-body', 'Critical_Logs_Report.csv')" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer hover-scale"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs sm:text-sm min-w-[600px]">
+                            <thead class="bg-slate-100/90 text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[11px] font-black">
+                                <tr>
+                                    <th class="p-4">نوع الحركة</th>
+                                    <th class="p-4">التفاصيل</th>
+                                    <th class="p-4">التاريخ والوقت</th>
+                                    <th class="p-4 text-center">إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table-body" class="divide-y divide-slate-100 font-bold"><tr><td colspan="4" class="p-8 text-center text-slate-400">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- جميع المودالات الخاصة بالإدارة -->
+    <div id="dash-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-5xl w-full p-6 sm:p-8 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <h3 id="dash-details-title" class="text-base sm:text-lg font-black text-slate-900">تفاصيل المؤشر</h3>
+                <div class="flex items-center gap-2">
+                    <button id="dash-details-excel-btn" onclick="" class="bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2 rounded-xl text-xs font-black transition hidden items-center gap-1.5 cursor-pointer hover-scale"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
+                    <button id="dash-details-invoice-btn" onclick="" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2 rounded-xl text-xs font-black transition hidden items-center gap-1.5 cursor-pointer hover-scale"><i class="fa-solid fa-file-invoice"></i> طباعة كشف أرباح</button>
+                    <button onclick="closeDashDetailsModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer flex items-center justify-center font-bold"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div id="dash-details-content" class="space-y-3 font-bold"></div>
+        </div>
+    </div>
+
+    <!-- مودال إضافة إعلان -->
+    <div id="announcement-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="announcement-modal-title" class="text-base sm:text-lg font-black text-slate-900">إضافة إعلان جديد</h3>
+                <button onclick="closeAnnouncementModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="announcement-form" onsubmit="saveAnnouncement(event)" class="space-y-3.5">
+                <input type="hidden" id="announcement-id">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">عنوان الإعلان <span class="text-rose-600">*</span></label>
+                    <input type="text" id="announcement-form-title" required placeholder="مثال: تنبيه بخصوص شحنات العيد" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">محتوى الإعلان <span class="text-rose-600">*</span></label>
+                    <textarea id="announcement-form-content" required rows="3" placeholder="نص الإعلان أو التنبيه للشريط المتحرك..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700"></textarea>
+                </div>
+                <div class="flex items-center gap-2.5 bg-emerald-50 p-3 rounded-2xl border border-emerald-200">
+                    <input type="checkbox" id="announcement-form-active" checked class="w-4 h-4 text-emerald-700 rounded border-slate-300 cursor-pointer">
+                    <label for="announcement-form-active" class="text-xs font-black text-emerald-900 cursor-pointer">إعلان نشط (يظهر في الشريط المتحرك)</label>
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeAnnouncementModal()" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer hover-scale">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-black shadow-lg shadow-emerald-700/20 cursor-pointer hover-scale">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال الفاتورة الرسمية -->
+    <div id="invoice-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-5 max-h-[95vh] overflow-y-auto border border-slate-200 relative">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3 no-print">
+                <h3 class="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-700"></i> معاينة الفاتورة الرسمية</h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md cursor-pointer hover-scale"><i class="fa-solid fa-print"></i> طباعة / حفظ PDF</button>
+                    <button onclick="closeInvoiceModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer flex items-center justify-center font-bold"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+
+            <div id="invoice-print-section" class="bg-white p-6 sm:p-8 rounded-2xl border-2 border-slate-200 space-y-6 text-slate-900 font-bold">
+                <div class="flex justify-between items-start border-b-2 border-emerald-700 pb-4">
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black text-emerald-800 flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked"></i> Nour Tracking System
+                        </h1>
+                        <p class="text-xs text-slate-500 mt-1">نظام إدارة الشحنات والطلبيات الرسمية</p>
+                    </div>
+                    <div class="text-left">
+                        <h2 class="text-base sm:text-lg font-black text-slate-900" id="inv-title-type">فاتورة مبيعات / استلام</h2>
+                        <p class="text-xs text-slate-500 mt-0.5" id="inv-date">التاريخ: -</p>
+                        <p class="text-xs font-black text-emerald-800 mt-0.5" id="inv-code">رقم المرجع / الشحنة: -</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 gap-3 text-xs sm:text-sm">
+                    <div><span class="text-slate-500">اسم الزبون / الجهة:</span> <span id="inv-client-name" class="font-black text-slate-900">-</span></div>
+                    <div><span class="text-slate-500">رقم الهاتف:</span> <span id="inv-client-phone" class="font-black text-slate-800">-</span></div>
+                    <div class="col-span-2"><span class="text-slate-500">العنوان:</span> <span id="inv-client-address" class="font-black text-slate-800">-</span></div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs sm:text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-emerald-800 text-white text-[11px] font-black">
+                                <th class="p-3 rounded-r-xl">رقم الشحنة</th>
+                                <th class="p-3">تفاصيل القطع</th>
+                                <th class="p-3">تاريخ الطلب</th>
+                                <th class="p-3">تاريخ الاستلام</th>
+                                <th class="p-3">المبلغ (₪)</th>
+                                <th class="p-3 rounded-l-xl" id="inv-col-extra">الصافي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inv-items-table" class="divide-y divide-slate-100 border border-slate-200"></tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <div class="w-full sm:w-64 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs sm:text-sm">
+                        <div class="flex justify-between font-bold text-slate-700">
+                            <span>إجمالي القيمة:</span>
+                            <span id="inv-subtotal">₪0.00</span>
+                        </div>
+                        <div class="flex justify-between font-black text-emerald-800 border-t border-slate-200 pt-2 text-sm sm:text-base">
+                            <span id="inv-total-label">الصافي المطلوب:</span>
+                            <span id="inv-grand-total">₪0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 flex justify-between items-end border-t border-slate-200">
+                    <div>
+                        <p class="text-[11px] text-slate-500">شكراً لتعاملكم معنا! 🌸</p>
+                        <p class="text-[10px] text-slate-400 mt-1">تعتبر هذه الفاتورة رسمية ومعتمدة عند الإصدار من النظام.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-32 h-16 border-2 border-dashed border-emerald-700 rounded-xl flex items-center justify-center text-emerald-800 font-black text-xs opacity-80 rotate-[-6deg]">
+                            ختم الإدارة المعتمد<br>Nour Track
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">التوقيع / الختم</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال الشحنات -->
+    <div id="shipment-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="shipment-modal-title" class="text-base sm:text-lg font-black text-slate-900">إضافة شحنة رئيسية جديدة</h3>
+                <button onclick="closeShipmentModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="shipment-form" onsubmit="saveShipment(event)" class="space-y-3.5">
+                <input type="hidden" id="shipment-id">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">كود الشحنة (البارسل) <span class="text-rose-600">*</span></label>
+                    <input type="text" id="form-shipment-code" required placeholder="مثال: GSH1SY21..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">موقع الشراء <span class="text-rose-600">*</span></label>
+                        <select id="form-shipment-website" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">تاريخ الطلب الفعلي <span class="text-rose-600">*</span></label>
+                        <input type="date" id="form-order-date" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">تاريخ الوصول للبريد <span class="text-rose-600">*</span></label>
+                        <input type="date" id="form-shipment-date" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">تكلفة الشحنة (₪) <span class="text-rose-600">*</span></label>
+                        <input type="number" step="0.01" id="form-shipping-cost" required placeholder="0.00" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">نسبة العمولة (%)</label>
+                    <input type="number" step="0.01" id="form-commission-rate" placeholder="مثال: 5" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div class="flex items-center gap-2.5 bg-emerald-50 p-3 rounded-2xl border border-emerald-200">
+                    <input type="checkbox" id="form-shipment-received" class="w-4 h-4 text-emerald-700 rounded border-slate-300 cursor-pointer">
+                    <label for="form-shipment-received" class="text-xs sm:text-sm font-black text-emerald-900 cursor-pointer">تم استلام الشحنة الكبيرة من البريد</label>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">ملاحظات</label>
+                    <input type="text" id="form-shipment-notes" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeShipmentModal()" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer hover-scale">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-black shadow-lg shadow-emerald-700/20 cursor-pointer hover-scale">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال الطلبيات -->
+    <div id="order-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="order-modal-title" class="text-base sm:text-lg font-black text-slate-900">إضافة طلبية لزبون</h3>
+                <button onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="order-form" onsubmit="saveOrder(event)" class="space-y-3.5">
+                <input type="hidden" id="order-id">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">اختر الشحنة الرئيسية <span class="text-rose-600">*</span></label>
+                    <select id="form-order-shipment" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">اسم الزبون <span class="text-rose-600">*</span></label>
+                    <select id="form-client-name" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700"></select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">تاريخ الشراء / الطلب <span class="text-rose-600">*</span></label>
+                        <input type="date" id="form-order-item-date" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">تاريخ الاستلام الفعلي (إن وجد)</label>
+                        <input type="date" id="form-arrival-item-date" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">السعر الأصلي (₪) <span class="text-rose-600">*</span></label>
+                        <input type="number" step="0.01" id="form-original-price" required oninput="calculateFinalOrderPrice()" class="w-full border border-slate-300 rounded-2xl px-3 py-2 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">نسبة الخصم (%)</label>
+                        <input type="number" step="0.01" id="form-discount-rate" value="0" oninput="calculateFinalOrderPrice()" class="w-full border border-slate-300 rounded-2xl px-3 py-2 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">ما دفعه الزبون (₪) <span class="text-rose-600">*</span></label>
+                        <input type="number" step="0.01" id="form-total-price" required oninput="calculateProfitAutomatically()" class="w-full border border-slate-300 rounded-2xl px-3 py-2 text-sm bg-emerald-50 text-emerald-900 font-black focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">سعر القطعة بالموقع (₪) <span class="text-rose-600">*</span></label>
+                        <input type="number" step="0.01" id="form-cost-price" required oninput="calculateProfitAutomatically()" placeholder="سعر الشراء من الموقع" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">الربح الصافي المحسوب (₪)</label>
+                        <input type="number" step="0.01" id="form-profit" readonly class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm bg-teal-50 text-teal-900 font-black focus:outline-none" placeholder="يحسب تلقائياً">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div class="flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-200">
+                        <input type="checkbox" id="form-is-paid" class="w-4 h-4 text-indigo-700 rounded border-slate-300 cursor-pointer">
+                        <label for="form-is-paid" class="text-xs font-black text-indigo-950 cursor-pointer">دفع الزبون؟</label>
+                    </div>
+                    <div class="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-2xl border border-emerald-200">
+                        <input type="checkbox" id="form-is-delivered" class="w-4 h-4 text-emerald-700 rounded border-slate-300 cursor-pointer">
+                        <label for="form-is-delivered" class="text-xs font-black text-emerald-900 cursor-pointer">استلم الطلب؟</label>
+                    </div>
+                    <div class="flex items-center gap-2 bg-rose-50 p-2.5 rounded-2xl border border-rose-200">
+                        <input type="checkbox" id="form-is-returned" class="w-4 h-4 text-rose-700 rounded border-slate-300 cursor-pointer">
+                        <label for="form-is-returned" class="text-xs font-black text-rose-900 cursor-pointer">مرتجع / تالف؟</label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">تفاصيل القطع الخاصة بهذا الزبون</label>
+                    <textarea id="form-notes" rows="2" placeholder="وصف القطعة..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700"></textarea>
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer hover-scale">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-black shadow-lg shadow-emerald-700/20 cursor-pointer hover-scale">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال الزبائن -->
+    <div id="client-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="client-modal-title" class="text-base sm:text-lg font-black text-slate-900">إضافة زبون جديد</h3>
+                <button onclick="closeClientModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="client-form" onsubmit="saveClient(event)" class="space-y-3.5">
+                <input type="hidden" id="client-id">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">اسم الزبون <span class="text-rose-600">*</span></label>
+                    <input type="text" id="client-form-name" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">رقم الهاتف (الذي سيتم البحث به بالداتا بيس) <span class="text-rose-600">*</span></label>
+                    <input type="text" id="client-form-phone" required placeholder="052..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">العنوان <span class="text-rose-600">*</span></label>
+                    <input type="text" id="client-form-address" required placeholder="العنوان..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">ملاحظات الإدارة للزبون (تظهر في بوابته إذا وُجدت)</label>
+                    <textarea id="client-form-admin-notes" rows="2" placeholder="رسالة أو تنبيه خاص لهذا الزبون..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700"></textarea>
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeClientModal()" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer hover-scale">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-black shadow-lg shadow-emerald-700/20 cursor-pointer hover-scale">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال تفاصيل زبون -->
+    <div id="client-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="client-details-title" class="text-base sm:text-lg font-black text-slate-900">تفاصيل مشتريات الزبون</h3>
+                <button onclick="closeClientDetailsModal()" class="text-slate-500 hover:text-slate-900 text-lg cursor-pointer font-bold"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="client-details-content" class="space-y-4 font-bold"></div>
+        </div>
+    </div>
+
+    <!-- مودال موقع شراء -->
+    <div id="website-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="website-modal-title" class="text-base sm:text-lg font-black text-slate-900">إضافة موقع شراء جديد</h3>
+                <button onclick="closeWebsiteModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="website-form" onsubmit="saveWebsite(event)" class="space-y-3.5">
+                <input type="hidden" id="website-id">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">اسم الموقع <span class="text-rose-600">*</span></label>
+                    <input type="text" id="website-form-name" required placeholder="Shein" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">رابط الموقع</label>
+                    <input type="text" id="website-form-url" placeholder="https://..." class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">ملاحظات</label>
+                    <input type="text" id="website-form-notes" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeWebsiteModal()" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer hover-scale">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-black shadow-lg shadow-emerald-700/20 cursor-pointer hover-scale">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال مصروف -->
+    <div id="expense-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white modal-animate rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="expense-modal-title" class="text-base sm:text-lg font-black text-slate-900">إضافة مصروف جديد</h3>
+                <button onclick="closeExpenseModal()" class="text-slate-400 hover:text-slate-700 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="expense-form" onsubmit="saveExpense(event)" class="space-y-3.5">
+                <input type="hidden" id="expense-id">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">البيان / الوصف <span class="text-rose-600">*</span></label>
+                    <input type="text" id="expense-form-title" required placeholder="أدوات تغليف" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">التاريخ <span class="text-rose-600">*</span></label>
+                    <input type="date" id="expense-form-date" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">المبلغ (₪) <span class="text-rose-600">*</span></label>
+                    <input type="number" step="0.01" id="expense-form-amount" required class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">ملاحظات</label>
+                    <input type="text" id="expense-form-notes" class="w-full border border-slate-300 rounded-2xl px-3.5 py-2.5 text-sm font-bold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeExpenseModal()" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer hover-scale">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs sm:text-sm font-black shadow-lg shadow-emerald-700/20 cursor-pointer hover-scale">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- استدعاء ملفات الجافاسكريبت بالترتيب -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
