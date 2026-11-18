@@ -1,1 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 
+:root {
+    --primary-emerald: #059669;
+    --dark-emerald: #064e3b;
+    --slate-bg: #0f172a;
+}
+
+body { 
+    font-family: 'Tajawal', sans-serif; 
+    background: radial-gradient(circle at top right, #064e3b 0%, #0f172a 45%, #020617 100%);
+    min-height: 100vh; 
+    position: relative; 
+    overflow-x: hidden; 
+}
+
+/* Admin Body Mesh Background */
+body.admin-theme {
+    background: #f1f5f9;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.05);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(5, 150, 105, 0.4);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(5, 150, 105, 0.7);
+}
+
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Glassmorphism Cards & Modals */
+.glass-card {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(16, 185, 129, 0.1);
+}
+
+.glass-modal {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+}
+
+.admin-card {
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-card:hover {
+    box-shadow: 0 12px 28px -4px rgba(6, 78, 59, 0.09);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.hover-scale { 
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); 
+}
+.hover-scale:hover { 
+    transform: translateY(-3px); 
+}
+.hover-scale:active {
+    transform: translateY(0px) scale(0.98);
+}
+
+/* Smooth Modal Fade-In */
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-animate {
+    animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* News Ticker Animation */
+@keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(50%); }
+}
+.animate-ticker {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 28s linear infinite;
+}
+.animate-ticker:hover {
+    animation-play-state: paused;
+}
+
+/* Floating Background Icons */
+@keyframes floatSlow {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-18px) rotate(8deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+}
+.bg-icon {
+    position: fixed;
+    color: rgba(52, 211, 153, 0.05);
+    font-size: 5.5rem;
+    z-index: 0;
+    pointer-events: none;
+    animation: floatSlow 10s ease-in-out infinite;
+}
+
+/* Print Invoice Styling */
+@media print {
+    body * { visibility: hidden; }
+    #invoice-print-section, #invoice-print-section * { visibility: visible; }
+    #invoice-print-section { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        padding: 15px; 
+        margin: 0; 
+        background: white !important; 
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .no-print { display: none !important; }
+}
